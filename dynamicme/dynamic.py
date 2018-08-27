@@ -789,71 +789,71 @@ class LocalMove(object):
             warnings.warn('No parameters found for move: random')
 
 
-class ParallelMove(object):
-    """
-    Handles parallel moves. Needs MPI.
-    Samples in parallel, gathers samples, implements move.
-    Also unoves.
-    """
-    import mpi4py
+# class ParallelMove(object):
+#     """
+#     Handles parallel moves. Needs MPI.
+#     Samples in parallel, gathers samples, implements move.
+#     Also unoves.
+#     """
+#     import mpi4py
 
-    def __init__(me, move_objects):
-        self.me = me
-        self.move_objects = move_objects
+#     def __init__(me, move_objects):
+#         self.me = me
+#         self.move_objects = move_objects
 
-    def do_work(tasks):
-        """
-        Work performed by each thread
-        """
-        # Move
-        mover.move(me, pert_rxns, group_rxn_dict=group_rxn_dict)
+#     def do_work(tasks):
+#         """
+#         Work performed by each thread
+#         """
+#         # Move
+#         mover.move(me, pert_rxns, group_rxn_dict=group_rxn_dict)
 
-        # Simulate
-        dyme = DynamicME(me, growth_key=growth_key, growth_rxn=growth_rxn,
-                         exchange_one_rxn=self.exchange_one_rxn)
-        result = self.simulate_batch(dyme, basis=basis, verbosity=verbosity)
+#         # Simulate
+#         dyme = DynamicME(me, growth_key=growth_key, growth_rxn=growth_rxn,
+#                          exchange_one_rxn=self.exchange_one_rxn)
+#         result = self.simulate_batch(dyme, basis=basis, verbosity=verbosity)
 
-        # Compute objective value (error)
-        df_sim = self.compute_conc_profile(result)
-        objval = self.calc_error_conc(df_sim, df_meas, variables, error_fun=error_fun)
+#         # Compute objective value (error)
+#         df_sim = self.compute_conc_profile(result)
+#         objval = self.calc_error_conc(df_sim, df_meas, variables, error_fun=error_fun)
 
-        result_dict = {'result':result, 'objval':objval}
+#         result_dict = {'result':result, 'objval':objval}
 
-        return result_dict
-
-
-    def sample_move():
-        """
-        Main loop: sample, move, gather, return best
-        """
-        from mpi4py import MPI
-
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
-        nWorkers = size
-
-        #----------------------------------------------------
-        # Do work in parallel
-        data = do_work(worker_tasks[rank])
-        #----------------------------------------------------
-        # Gather results by root
-        data = comm.gather(data, root=0)
-
-        # Keep moves within threshold
+#         return result_dict
 
 
-        # Return best move for next iteration
-        objs = [d['objval'] for d in data]
-        obj_best = min(objs)
-        result_best = [d for d in data if d['objval']==obj_best]
+#     def sample_move():
+#         """
+#         Main loop: sample, move, gather, return best
+#         """
+#         from mpi4py import MPI
 
-        #----------------------------------------------------
-        # If root: return best move for next iteration
-        if rank==0:
-            # Gather results and return move
-            if verbosity >= 1:
-                print('Gathering samples by root')
+#         comm = MPI.COMM_WORLD
+#         rank = comm.Get_rank()
+#         size = comm.Get_size()
+#         nWorkers = size
+
+#         #----------------------------------------------------
+#         # Do work in parallel
+#         data = do_work(worker_tasks[rank])
+#         #----------------------------------------------------
+#         # Gather results by root
+#         data = comm.gather(data, root=0)
+
+#         # Keep moves within threshold
+
+
+#         # Return best move for next iteration
+#         objs = [d['objval'] for d in data]
+#         obj_best = min(objs)
+#         result_best = [d for d in data if d['objval']==obj_best]
+
+#         #----------------------------------------------------
+#         # If root: return best move for next iteration
+#         if rank==0:
+#             # Gather results and return move
+#             if verbosity >= 1:
+#                 print('Gathering samples by root')
 
 #============================================================
 class ParamOpt(object):
