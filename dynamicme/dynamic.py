@@ -153,10 +153,10 @@ class DynamicME(object):
         mu_opt = 0.
         x_dict = None
         if exchange_one_rxn:
-            ex_flux_dict = {self.get_exchange_rxn(metid).id:0. for metid in conc_dict.keys()}
+            ex_flux_dict = {self.get_exchange_rxn(metid).id:0. for metid in list(conc_dict.keys())}
         else:
             ex_flux_dict = {}
-            for metid in conc_dict.keys():
+            for metid in list(conc_dict.keys()):
                 try:
                     rxn = self.get_exchange_rxn(metid, 'source', exchange_one_rxn)
                     ex_flux_dict[rxn.id] = 0.
@@ -185,13 +185,13 @@ class DynamicME(object):
         recompute_fluxes = True     # In first iteration always compute
         while t_sim < T:
             # Determine available substrates given concentrations
-            for metid,conc in conc_dict.iteritems():
+            for metid,conc in conc_dict.items():
                 try:
                     ex_rxn = self.get_exchange_rxn(metid, exchange_one_rxn=exchange_one_rxn,
                                                    direction='source')
                     if conc <= ZERO_CONC:
                         if verbosity >= 1:
-                            print 'Metabolite %s depleted.'%(metid)
+                            print('Metabolite %s depleted.'%(metid))
                         if exchange_one_rxn:
                             lb0 = ex_rxn.lower_bound
                             lb1 = 0.
@@ -209,39 +209,39 @@ class DynamicME(object):
                         # threshold since, e.g., secreted products can be 
                         # re-consumed, too.
                         if verbosity >= 1:
-                            print 'Metabolite %s available.'%(metid)
+                            print('Metabolite %s available.'%(metid))
                         if exchange_one_rxn:
                             lb0 = ex_rxn.lower_bound
-                            if lb_dict.has_key(ex_rxn.id):
+                            if ex_rxn.id in lb_dict:
                                 lb1 = lb_dict[ex_rxn.id]
                             else:
                                 if verbosity >= 1:
-                                    print 'Using default LB=%g for %s'%(LB_DEFAULT, ex_rxn.id)
+                                    print('Using default LB=%g for %s'%(LB_DEFAULT, ex_rxn.id))
                                 lb1 = LB_DEFAULT
                             if lb1 != lb0:
                                 recompute_fluxes = True
                             ex_rxn.lower_bound = lb1
                         else:
                             ub0 = ex_rxn.upper_bound
-                            if ub_dict.has_key(ex_rxn.id):
+                            if ex_rxn.id in ub_dict:
                                 ub1 = ub_dict[ex_rxn.id]
                             else:
                                 if verbosity >= 1:
-                                    print 'Using default UB=%g for %s'%(UB_DEFAULT, ex_rxn.id)
+                                    print('Using default UB=%g for %s'%(UB_DEFAULT, ex_rxn.id))
                                 ub1 = UB_DEFAULT
                             if ub1 != ub0:
                                 recompute_fluxes = True
                             ex_rxn.upper_bound = ub1
                 except:
                     if verbosity >= 2:
-                        print 'No uptake rxn found for met:', metid
+                        print('No uptake rxn found for met:', metid)
 
             # Recompute fluxes if any rxn bounds changed, which triggers
             # recompute_fluxes flag
             if recompute_fluxes:
                 # Compute ME
                 if verbosity >= 1:
-                    print 'Computing new uptake rates'
+                    print('Computing new uptake rates')
                 mu_opt, hs_bs, x_opt, cache_opt = solver.bisectmu(prec_bs, basis=basis,
                                                                   verbosity=verbosity)
 
@@ -262,7 +262,7 @@ class DynamicME(object):
             cplx_conc_dict_prime = cplx_conc_dict.copy()
             reset_run = False
 
-            for metid, conc in conc_dict.iteritems():
+            for metid, conc in conc_dict.items():
                 v = 0.
                 # If ME 1.0, EX_ split into source and sink
                 if exchange_one_rxn:
@@ -294,16 +294,16 @@ class DynamicME(object):
                             # Set flag to negate this run and recompute fluxes again with a new lower bound if any of the
                             # metabolites end up with a negative concentration
                             if verbosity >= 1:
-                                print metid, "below threshold, reset run flag triggered"
+                                print(metid, "below threshold, reset run flag triggered")
                             reset_run = True
                             lb_dict[rxn.id] = min(-conc_dict[metid] / (X_biomass_prime * dt), 0.)
                             if verbosity >= 1:
-                                print 'Changing lower bounds %s to %.3f' % (metid, lb_dict[rxn.id])
+                                print('Changing lower bounds %s to %.3f' % (metid, lb_dict[rxn.id]))
                         elif -v*X_biomass_prime*dt > conc_dict_prime[metid]/2:
                             ### Update lower bounds as concentration is nearing 0
                             lb_dict[rxn.id] = min(-conc_dict_prime[metid]/(X_biomass*dt), 0.)
                             if verbosity >= 1:
-                                print 'Changing lower bounds %s to %.3f' %(metid, lb_dict[rxn.id])
+                                print('Changing lower bounds %s to %.3f' %(metid, lb_dict[rxn.id]))
                 else:
                     # Account for oxygen diffusion from headspace into medium
                     conc_dict_prime[metid] = conc + (v*X_biomass_prime + kLa*(o2_head - conc))*dt
@@ -331,7 +331,7 @@ class DynamicME(object):
             # Reset the run if the reset_run flag is triggered, if not update the new biomass and conc_dict
             if reset_run:
                 if verbosity >= 1:
-                    print "Resetting run"
+                    print("Resetting run")
                 continue  # Skip the updating of time steps and go to the next loop while on the same time step
             else:
                 X_biomass = X_biomass_prime
@@ -365,8 +365,8 @@ class DynamicME(object):
             # ------------------------------------------------
             # Print some results
             if verbosity >= 1:
-                print 'Biomass at t=%g: %g'%(t_sim, X_biomass)
-                print 'Concentrations:', conc_dict
+                print('Biomass at t=%g: %g'%(t_sim, X_biomass))
+                print('Concentrations:', conc_dict)
 
 
         result = {'biomass':biomass_profile,
@@ -613,7 +613,7 @@ class DynamicME(object):
         Update inertia constraints with new complex concentrations
         """
         me = self.me
-        for cplx_id, conc in cplx_conc_dict.iteritems():
+        for cplx_id, conc in cplx_conc_dict.items():
             cplx = me.metabolites.get_by_id(cplx_id)
             for rxn in cplx.reactions:
                 cons_id = 'cons_rate_' + rxn.id
@@ -708,10 +708,10 @@ class LocalMove(object):
         Unmove to previous params
         """
         if self.params0 is None:
-            print 'No pre-move params stored. Not doing anything'
+            print('No pre-move params stored. Not doing anything')
         else:
             params0 = self.params0
-            for rid,keff in params0.iteritems():
+            for rid,keff in params0.items():
                 rxn = me.reactions.get_by_id(rid)
                 rxn.keff = keff
                 rxn.update()
@@ -730,7 +730,7 @@ class LocalMove(object):
         ### Save params before move
         self.params0 = {}
 
-        if param_dict.has_key(method):
+        if method in param_dict:
             params = param_dict[method]
             if method is 'uniform':
                 rmin = params['min']
@@ -745,15 +745,15 @@ class LocalMove(object):
                         keff2 = rxn.keff * rs[j]
 
                         if verbosity >= 2:
-                            print 'Rxn: %s\t keff_old=%g\t keff_new=%g'%(
-                                    rxn.id, rxn.keff, keff2)
+                            print('Rxn: %s\t keff_old=%g\t keff_new=%g'%(
+                                    rxn.id, rxn.keff, keff2))
 
                         rxn.keff = keff2
                         rxn.update()
                 else:
-                    n_groups = len(group_rxn_dict.keys())
+                    n_groups = len(list(group_rxn_dict.keys()))
                     rs = uniform(rmin,rmax, n_groups)
-                    for gind, (group,rids) in enumerate(group_rxn_dict.iteritems()):
+                    for gind, (group,rids) in enumerate(group_rxn_dict.items()):
                         #rand = np.random.uniform(rmin,rmax)
                         #rand = uniform(rmin,rmax)
                         rand = rs[gind]
@@ -763,8 +763,8 @@ class LocalMove(object):
                                 self.params0[rxn.id] = rxn.keff
                                 keff2 = rxn.keff * rand
                                 if verbosity >= 2:
-                                    print 'Group: %s\t Rxn: %s\t keff_old=%g\t keff_new=%g'%(
-                                            group, rxn.id, rxn.keff, keff2)
+                                    print('Group: %s\t Rxn: %s\t keff_old=%g\t keff_new=%g'%(
+                                            group, rxn.id, rxn.keff, keff2))
                                 rxn.keff = keff2
                                 rxn.update()
 
@@ -783,7 +783,7 @@ class LocalMove(object):
                     rxn.update()
 
             else:
-                print 'Move method not implemented:', method
+                print('Move method not implemented:', method)
 
         else:
             warnings.warn('No parameters found for move: random')
@@ -853,7 +853,7 @@ class ParallelMove(object):
         if rank==0:
             # Gather results and return move
             if verbosity >= 1:
-                print 'Gathering samples by root'
+                print('Gathering samples by root')
 
 #============================================================
 class ParamOpt(object):
@@ -881,7 +881,7 @@ class ParamOpt(object):
 
     def update_keffs(self, keff_dict):
         me = self.me
-        for rid,keff in keff_dict.iteritems():
+        for rid,keff in keff_dict.items():
             rxn = me.reactions.get_by_id(rid)
             rxn.keff = keff
             rxn.update()
@@ -981,7 +981,7 @@ class ParamOpt(object):
                 # Local move
 
                 if verbosity >= 1:
-                    print '[Phase I] Iter %d:\t Performing local move:'%n_iter, type(mover)
+                    print('[Phase I] Iter %d:\t Performing local move:'%n_iter, type(mover))
                 mover.move(me, pert_rxns, group_rxn_dict=group_rxn_dict)
 
                 # Simulate
@@ -1017,9 +1017,9 @@ class ParamOpt(object):
                 toc = time.time()-tic
                 #--------------------------------------------
                 if verbosity >= 1:
-                    print 'Obj:%g \t Best Obj: %g \t Tmax:%g \t T:%g \t Time:%g secs'%(
-                        objval, obj_best, Tmax, T_rel, toc)
-                    print '//============================================'
+                    print('Obj:%g \t Best Obj: %g \t Tmax:%g \t T:%g \t Time:%g secs'%(
+                        objval, obj_best, Tmax, T_rel, toc))
+                    print('//============================================')
 
         #----------------------------------------------------
         # Phase II: optimization
@@ -1035,7 +1035,7 @@ class ParamOpt(object):
                 # Local move
                 # TODO: PARALLEL sampling and moves
                 if verbosity >= 1:
-                    print '[Phase II] Iter %d:\t Performing local move:'%n_iter, type(mover)
+                    print('[Phase II] Iter %d:\t Performing local move:'%n_iter, type(mover))
 
                 mover.move(me, pert_rxns, group_rxn_dict=group_rxn_dict)
 
@@ -1080,9 +1080,9 @@ class ParamOpt(object):
                 toc = time.time()-tic
                 #--------------------------------------------
                 if verbosity >= 1:
-                    print 'Obj:%g \t Best Obj: %g \t Tmax:%g \t T:%g \t Move:%s\t n_reject:%d\t Time:%g secs'%(
-                        objval, obj_best, Tmax, T_new, move_str, n_reject, toc)
-                    print '//============================================'
+                    print('Obj:%g \t Best Obj: %g \t Tmax:%g \t T:%g \t Move:%s\t n_reject:%d\t Time:%g secs'%(
+                        objval, obj_best, Tmax, T_new, move_str, n_reject, toc))
+                    print('//============================================')
 
         return sol_best, opt_stats, result_best
 
@@ -1167,12 +1167,12 @@ class ParamOpt(object):
 
             T_end = self.get_time_ss(df_meas.loc[df_meas['time']>LAG_MEAS,:], cols_fit)
             if verbosity > 0:
-                print 'T_end(meas):', T_end
+                print('T_end(meas):', T_end)
             df_meas['time'] = df_meas['time'] / T_end
             df_meas = df_meas.loc[ df_meas['time'] <= 1, :]
             T_end = self.get_time_ss(df_sim.loc[df_sim['time']>LAG_SIM,:], cols_fit)
             if verbosity > 0:
-                print 'T_end(sim):', T_end
+                print('T_end(sim):', T_end)
             df_sim['time'] = df_sim['time'] / T_end
             df_sim = df_sim.loc[ df_sim['time'] <= 1, :]
         else:
@@ -1190,7 +1190,7 @@ class ParamOpt(object):
             yy_sim = np.interp(tt, t_sim, y_sim)
             yy_meas= np.interp(tt, t_meas,y_meas)
             error = error_fun(yy_meas, yy_sim)
-            if col_weights.has_key(col):
+            if col in col_weights:
                 error = error * col_weights[col]
             weighted_errors.append(error)
 
